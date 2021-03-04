@@ -4,6 +4,7 @@ import React from "react";
 import { readRemoteFile } from "react-papaparse";
 import {useRowSelect, useTable, useBlockLayout, useSortBy, useFilters} from 'react-table'
 import {FixedSizeList} from 'react-window'
+import Chart from 'components/chart'
 
 export default function Home() {
   const [data, setData] = React.useState([]);
@@ -11,18 +12,13 @@ export default function Home() {
   React.useEffect(() => {
     async function getData() {
       readRemoteFile("/data/billboard.csv", {
-        complete: (data) => setData(data.data),
+        complete: (data) => setData(data.data.filter(x => x.primaryArtist.includes('Madonna'))),
         header: true,
       });
     }
     getData();
   }, []);
 
-
-
-  // console.log(data)
-
-  // console.log(data);
 
   const DanceabilityRangeColumnFilter = ({column: filterValue = [], preFilteredRows, setFilter, id}) => {
     const [min, max] = React.useMemo(() => {
@@ -101,7 +97,7 @@ export default function Home() {
     {
       Header: 'Artwork',
       accessor: 'albumArtUrl',
-      Cell: ({value}) => console.log(value ? value : 'http://www.fillmurray.com/100/100') || <img src={value ? value : 'http://www.fillmurray.com/100/100'} />,
+      Cell: ({value}) => <img src={value ? value : 'http://www.fillmurray.com/100/100'} />,
       width: 100
     },
     {
@@ -110,6 +106,11 @@ export default function Home() {
       Filter: DanceabilityRangeColumnFilter,
       filter: 'between'
     },
+    {
+      Header: 'Energy',
+      accessor: 'energy'
+
+    }
   ], [])
 
   const defaultColumn = React.useMemo(
@@ -149,51 +150,53 @@ export default function Home() {
     defaultColumn,
     filterTypes
   }, useBlockLayout, useFilters, useSortBy)
-
-
   return (
-    <table {...getTableProps()}>
-      <thead>
-        {headerGroups.map(headerGroup => {
-          return (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column => (
-              <th {...column.getHeaderProps(column.getSortByToggleProps())}>
-                {column.render('Header')}
-                <span>
-                  {column.isSorted
-                    ? column.isSortedDesc
-                      ? '☝️'
-                      : '👇'
-                    : ''
-                  }
-                </span>
-                <div>
-                  {column.canFilter
-                    ? column.render('Filter')
-                    : null
-                  }
-                </div>
-               </th>
-            ))}
-          </tr>
-        )})}
-      </thead>
-      <tbody {...getTableBodyProps()}>
-        <FixedSizeList height={800} width={totalColumnsWidth} itemCount={rows.length} itemSize={100}>
-          {({index, style}) => {
-            const row = rows[index]
-            prepareRow(row)
+    <>
+      <table {...getTableProps()}>
+        <thead>
+          {headerGroups.map(headerGroup => {
             return (
-              <tr {...row.getRowProps()} style={style}>
-                {row.cells.map(cell => {
-                  return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
-                })}
-              </tr>
-            )
-          }}
-        </FixedSizeList>
-      </tbody>
-    </table>
+            <tr {...headerGroup.getHeaderGroupProps()}>
+              {headerGroup.headers.map(column => (
+                <th {...column.getHeaderProps(column.getSortByToggleProps())}>
+                  {column.render('Header')}
+                  <span>
+                    {column.isSorted
+                      ? column.isSortedDesc
+                        ? '☝️'
+                        : '👇'
+                      : ''
+                    }
+                  </span>
+                  <div>
+                    {column.canFilter
+                      ? column.render('Filter')
+                      : null
+                    }
+                  </div>
+                </th>
+              ))}
+            </tr>
+          )})}
+        </thead>
+        <tbody {...getTableBodyProps()}>
+          <FixedSizeList height={800} width={totalColumnsWidth} itemCount={rows.length} itemSize={100}>
+            {({index, style}) => {
+              const row = rows[index]
+              prepareRow(row)
+              return (
+                <tr {...row.getRowProps()} style={style}>
+                  {row.cells.map(cell => {
+                    return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+                  })}
+                </tr>
+              )
+            }}
+          </FixedSizeList>
+        </tbody>
+      </table>
+
+        <Chart data={rows.map(x => x.values)} />
+     </>
   );
 }
